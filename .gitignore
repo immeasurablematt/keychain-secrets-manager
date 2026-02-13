@@ -1,0 +1,12 @@
+# Never commit actual config with real paths
+secrets.conf
+
+# Environment files
+.env
+.env.*
+
+# macOS
+.DS_Store
+
+# Logs
+*.log
