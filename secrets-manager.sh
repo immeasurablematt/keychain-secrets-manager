@@ -270,31 +270,32 @@ do_store() {
     echo -e "${YELLOW}Choose a secret to store:${NC}"
     echo ""
 
-    local i=0
-    while [ "$i" -lt "$SECRET_COUNT" ]; do
-        local name="${SECRET_NAMES[$i]}"
-        local desc="${SECRET_DESCS[$i]}"
-        local num=$((i + 1))
-        local existing
-        existing=$(get_secret "$name")
-        local status=""
-        if [ -n "$existing" ]; then
-            status=" ${GREEN}(already stored)${NC}"
+    local si=0
+    while [ "$si" -lt "$SECRET_COUNT" ]; do
+        local sname="${SECRET_NAMES[$si]}"
+        local sdesc="${SECRET_DESCS[$si]}"
+        local snum=$((si + 1))
+        local sexisting
+        sexisting=$(get_secret "$sname")
+        local sstatus=""
+        if [ -n "$sexisting" ]; then
+            sstatus=" ${GREEN}(already stored)${NC}"
         fi
-        echo -e "  $num) $name — $desc$status"
-        i=$((i + 1))
+        echo -e "  $snum) $sname — $sdesc$sstatus"
+        si=$((si + 1))
     done
     local custom_num=$((SECRET_COUNT + 1))
     echo "  $custom_num) Custom name (advanced)"
     echo ""
 
-    read -rp "Enter number: " choice
+    local schoice=""
+    read -rp "Enter number: " schoice
 
     local secret_name=""
-    if [ "$choice" -eq "$custom_num" ] 2>/dev/null; then
+    if [ "$schoice" -eq "$custom_num" ] 2>/dev/null; then
         read -rp "Enter custom secret name: " secret_name
-    elif [ "$choice" -ge 1 ] 2>/dev/null && [ "$choice" -le "$SECRET_COUNT" ] 2>/dev/null; then
-        secret_name="${SECRET_NAMES[$((choice - 1))]}"
+    elif [ "$schoice" -ge 1 ] 2>/dev/null && [ "$schoice" -le "$SECRET_COUNT" ] 2>/dev/null; then
+        secret_name="${SECRET_NAMES[$((schoice - 1))]}"
     else
         echo -e "${RED}Invalid choice${NC}"
         return
@@ -303,18 +304,20 @@ do_store() {
     echo ""
     echo -e "Storing: ${BOLD}$secret_name${NC}"
 
-    local existing
-    existing=$(get_secret "$secret_name")
-    if [ -n "$existing" ]; then
-        echo -e "${YELLOW}⚠️  This secret already exists: $(mask_value "$existing")${NC}"
-        read -rp "Replace it? (y/n): " confirm
-        if [ "$confirm" != "y" ] && [ "$confirm" != "Y" ]; then
+    local cur_val
+    cur_val=$(get_secret "$secret_name")
+    if [ -n "$cur_val" ]; then
+        echo -e "${YELLOW}⚠️  This secret already exists: $(mask_value "$cur_val")${NC}"
+        local sreplace=""
+        read -rp "Replace it? (y/n): " sreplace
+        if [ "$sreplace" != "y" ] && [ "$sreplace" != "Y" ]; then
             echo "Cancelled."
             return
         fi
     fi
 
     echo -e "${YELLOW}Paste the secret value below (it won't be shown):${NC}"
+    local secret_value=""
     read -rs secret_value
     echo ""
 
@@ -336,37 +339,37 @@ do_list() {
     echo -e "${BOLD}Secrets in Keychain (service: $KEYCHAIN_SERVICE)${NC}"
     echo ""
 
-    local found=0
-    local i=0
-    while [ "$i" -lt "$SECRET_COUNT" ]; do
-        local name="${SECRET_NAMES[$i]}"
-        local env_var="${SECRET_ENV_VARS[$i]}"
-        local val
-        val=$(get_secret "$name")
-        if [ -n "$val" ]; then
-            echo -e "  ${GREEN}✅${NC} $name ${DIM}→ $env_var${NC} — $(mask_value "$val")"
-            found=$((found + 1))
+    local lfound=0
+    local li=0
+    while [ "$li" -lt "$SECRET_COUNT" ]; do
+        local lname="${SECRET_NAMES[$li]}"
+        local lenv_var="${SECRET_ENV_VARS[$li]}"
+        local lval
+        lval=$(get_secret "$lname")
+        if [ -n "$lval" ]; then
+            echo -e "  ${GREEN}✅${NC} $lname ${DIM}→ $lenv_var${NC} — $(mask_value "$lval")"
+            lfound=$((lfound + 1))
         else
-            echo -e "  ${RED}❌${NC} $name ${DIM}→ $env_var${NC} — ${YELLOW}not set${NC}"
+            echo -e "  ${RED}❌${NC} $lname ${DIM}→ $lenv_var${NC} — ${YELLOW}not set${NC}"
         fi
-        i=$((i + 1))
+        li=$((li + 1))
     done
 
     echo ""
-    echo -e "  ${BOLD}$found${NC} of ${BOLD}$SECRET_COUNT${NC} secrets configured"
+    echo -e "  ${BOLD}$lfound${NC} of ${BOLD}$SECRET_COUNT${NC} secrets configured"
 
     if [ "$PROJECT_COUNT" -gt 0 ]; then
         echo ""
         echo -e "  ${DIM}Projects receiving .env exports:${NC}"
-        local p=0
-        while [ "$p" -lt "$PROJECT_COUNT" ]; do
-            local path="${PROJECT_PATHS[$p]}"
-            if [ -d "$path" ]; then
-                echo -e "    ${GREEN}✅${NC} $path"
+        local lp=0
+        while [ "$lp" -lt "$PROJECT_COUNT" ]; do
+            local lpath="${PROJECT_PATHS[$lp]}"
+            if [ -d "$lpath" ]; then
+                echo -e "    ${GREEN}✅${NC} $lpath"
             else
-                echo -e "    ${DIM}⏭️  $path (not found — skipped during export)${NC}"
+                echo -e "    ${DIM}⏭️  $lpath (not found — skipped during export)${NC}"
             fi
-            p=$((p + 1))
+            lp=$((lp + 1))
         done
     fi
     echo ""
@@ -581,42 +584,44 @@ do_remove() {
     echo -e "${BOLD}Remove a secret from Keychain${NC}"
     echo ""
 
-    local found_names=()
-    local found_count=0
-    local i=0
-    while [ "$i" -lt "$SECRET_COUNT" ]; do
-        local name="${SECRET_NAMES[$i]}"
-        local val
-        val=$(get_secret "$name")
-        if [ -n "$val" ]; then
-            found_names+=("$name")
-            found_count=$((found_count + 1))
-            echo "  $found_count) $name — $(mask_value "$val")"
+    local rfound_names=()
+    local rfound_count=0
+    local ri=0
+    while [ "$ri" -lt "$SECRET_COUNT" ]; do
+        local rname="${SECRET_NAMES[$ri]}"
+        local rval
+        rval=$(get_secret "$rname")
+        if [ -n "$rval" ]; then
+            rfound_names+=("$rname")
+            rfound_count=$((rfound_count + 1))
+            echo "  $rfound_count) $rname — $(mask_value "$rval")"
         fi
-        i=$((i + 1))
+        ri=$((ri + 1))
     done
 
-    if [ "$found_count" -eq 0 ]; then
+    if [ "$rfound_count" -eq 0 ]; then
         echo -e "${YELLOW}No secrets stored in Keychain.${NC}"
         return
     fi
 
     echo ""
-    read -rp "Enter number to remove (or 0 to cancel): " choice
+    local rchoice=""
+    read -rp "Enter number to remove (or 0 to cancel): " rchoice
 
-    if [ "$choice" = "0" ]; then
+    if [ "$rchoice" = "0" ]; then
         echo "Cancelled."
         return
     fi
 
-    if [ "$choice" -ge 1 ] 2>/dev/null && [ "$choice" -le "$found_count" ] 2>/dev/null; then
-        local secret_name="${found_names[$((choice - 1))]}"
+    if [ "$rchoice" -ge 1 ] 2>/dev/null && [ "$rchoice" -le "$rfound_count" ] 2>/dev/null; then
+        local rsecret_name="${rfound_names[$((rchoice - 1))]}"
         echo ""
-        echo -e "${RED}⚠️  This will permanently remove '$secret_name' from Keychain.${NC}"
-        read -rp "Are you sure? (y/n): " confirm
-        if [ "$confirm" = "y" ] || [ "$confirm" = "Y" ]; then
-            delete_secret "$secret_name"
-            echo -e "${GREEN}✅ Removed '$secret_name' from Keychain.${NC}"
+        echo -e "${RED}⚠️  This will permanently remove '$rsecret_name' from Keychain.${NC}"
+        local rconfirm=""
+        read -rp "Are you sure? (y/n): " rconfirm
+        if [ "$rconfirm" = "y" ] || [ "$rconfirm" = "Y" ]; then
+            delete_secret "$rsecret_name"
+            echo -e "${GREEN}✅ Removed '$rsecret_name' from Keychain.${NC}"
         else
             echo "Cancelled."
         fi
@@ -631,9 +636,10 @@ print_header
 
 while true; do
     print_menu
-    read -rp "Enter choice (1-6): " choice
+    menu_choice=""
+    read -rp "Enter choice (1-6): " menu_choice
 
-    case "$choice" in
+    case "$menu_choice" in
         1) do_store ;;
         2) do_list ;;
         3) do_export ;;
